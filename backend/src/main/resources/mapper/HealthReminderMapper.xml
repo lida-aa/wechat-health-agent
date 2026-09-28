@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.Myself.demo.mapper.HealthReminderMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO health_reminder(
+            user_id, tool_name, params, reminder_hour, reminder_minute,
+            enabled, status, attempt_count, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{toolName}, #{params}, #{hour}, #{minute},
+            #{enabled}, #{status}, #{attemptCount}, NOW(), NOW()
+        )
+    </insert>
+
+    <select id="findActiveByUserId" resultType="com.Myself.demo.entity.HealthReminder">
+        SELECT id, user_id, tool_name, params,
+               reminder_hour AS hour, reminder_minute AS minute,
+               enabled, status, last_triggered_date, attempt_count,
+               next_retry_at, locked_until, last_error, created_at, updated_at
+        FROM health_reminder
+        WHERE user_id = #{userId} AND enabled = TRUE AND status != 'CANCELLED'
+        ORDER BY reminder_hour, reminder_minute, id
+    </select>
+
+    <select id="findActiveByUserIdAndId" resultType="com.Myself.demo.entity.HealthReminder">
+        SELECT id, user_id, tool_name, params,
+               reminder_hour AS hour, reminder_minute AS minute,
+               enabled, status, last_triggered_date, attempt_count,
+               next_retry_at, locked_until, last_error, created_at, updated_at
+        FROM health_reminder
+        WHERE user_id = #{userId} AND id = #{id}
+          AND enabled = TRUE AND status != 'CANCELLED'
+        LIMIT 1
+    </select>
+
+    <update id="cancel">
+        UPDATE health_reminder
+        SET enabled = FALSE,
+            status = 'CANCELLED',
+            locked_until = NULL,
+            next_retry_at = NULL,
+            updated_at = #{updatedAt}
+        WHERE user_id = #{userId} AND id = #{id}
+          AND enabled = TRUE AND status != 'CANCELLED'
+    </update>
+
+    <select id="findDueCandidates" resultType="com.Myself.demo.entity.HealthReminder">
+        SELECT id, user_id, tool_name, params,
+               reminder_hour AS hour, reminder_minute AS minute,
+               enabled, status, last_triggered_date, attempt_count,
+               next_retry_at, locked_until, last_error, created_at, updated_at
+        FROM health_reminder
+        WHERE enabled = TRUE
+          AND (last_triggered_date IS NULL OR last_triggered_date &lt; #{today})
+          AND (
+              (status = 'ACTIVE' AND reminder_hour = #{hour} AND reminder_minute = #{minute})
+              OR (status = 'FAILED' AND next_retry_at &lt;= #{now})
+              OR (status = 'RUNNING' AND locked_until &lt;= #{now})
+          )
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <update id="claim">
+        UPDATE health_reminder
+        SET status = 'RUNNING',
+            locked_until = #{lockedUntil},
+            updated_at = #{now}
+        WHERE id = #{id}
+          AND enabled = TRUE
+          AND (last_triggered_date IS NULL OR last_triggered_date &lt; #{today})
+          AND (
+              (status = 'ACTIVE' AND reminder_hour = #{hour} AND reminder_minute = #{minute})
+              OR (status = 'FAILED' AND next_retry_at &lt;= #{now})
+              OR (status = 'RUNNING' AND locked_until &lt;= #{now})
+          )
+    </update>
+
+    <update id="markSucceeded">
+        UPDATE health_reminder
+        SET status = 'ACTIVE',
+            last_triggered_date = #{triggeredDate},
+            attempt_count = 0,
+            next_retry_at = NULL,
+            locked_until = NULL,
+            last_error = NULL,
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND status = 'RUNNING'
+    </update>
+
+    <update id="markFailed">
+        UPDATE health_reminder
+        SET status = CASE WHEN #{terminal} THEN 'DEAD' ELSE 'FAILED' END,
+            enabled = CASE WHEN #{terminal} THEN FALSE ELSE TRUE END,
+            attempt_count = #{attemptCount},
+            next_retry_at = #{nextRetryAt},
+            locked_until = NULL,
+            last_error = #{lastError},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND status = 'RUNNING'
+    </update>
+</mapper>

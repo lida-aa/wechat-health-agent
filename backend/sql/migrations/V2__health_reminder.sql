@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS health_reminder (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(128) NOT NULL,
+    tool_name VARCHAR(64) DEFAULT NULL,
+    params TEXT NOT NULL,
+    reminder_hour TINYINT UNSIGNED NOT NULL,
+    reminder_minute TINYINT UNSIGNED NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    last_triggered_date DATE DEFAULT NULL,
+    attempt_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME DEFAULT NULL,
+    locked_until DATETIME DEFAULT NULL,
+    last_error VARCHAR(128) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_reminder_user (user_id, enabled),
+    INDEX idx_reminder_due (enabled, status, reminder_hour, reminder_minute),
+    INDEX idx_reminder_retry (enabled, status, next_retry_at),
+    INDEX idx_reminder_lock (enabled, status, locked_until)
+);

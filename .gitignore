@@ -1,0 +1,35 @@
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Backend build and local configuration
+backend/target/
+backend/src/main/resources/application.yaml
+backend/data/
+backend/health-data/
+backend/ilink-session*.json
+backend/memory-*.json
+backend/bili-cookie.txt
+# Corrupted legacy multi-purpose schema archive; canonical schema is under resources.
+backend/sql/schema.sql
+backend/src/main/resources/static/images/
+backend/src/main/resources/static/files/
+backend/src/main/resources/static/voices/
+*.log
+
+# Frontend dependencies and local configuration
+admin/node_modules/
+admin/dist/
+admin/.npm-cache/
+admin/.npm-install-failed*/
+admin/.env
+admin/.env.local
+admin/.env.development
+admin/.env.production
+admin/.env.test
+
+# Tooling
+**/.codegraph/
+**/.agents/

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.Myself.demo.mapper.HealthRecordMapper">
+    <resultMap id="healthRecordDocument" type="com.Myself.demo.entity.HealthRecordDocument">
+        <id property="userId" column="user_id"/>
+        <result property="documentJson" column="document_json"/>
+        <result property="version" column="version"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByUserId" resultMap="healthRecordDocument">
+        SELECT user_id, document_json, version, created_at, updated_at
+        FROM health_record
+        WHERE user_id = #{userId}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO health_record(user_id, document_json, version, created_at, updated_at)
+        VALUES(#{userId}, #{documentJson}, #{version}, NOW(), NOW())
+    </insert>
+
+    <update id="updateDocument">
+        UPDATE health_record
+        SET document_json = #{documentJson},
+            version = version + 1,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+</mapper>

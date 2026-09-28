@@ -1,0 +1,77 @@
+name: Health Agent CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-agent-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Repository safety check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Reject tracked secrets and runtime data
+        run: bash backend/scripts/ci/check-sensitive-files.sh
+
+  backend:
+    name: Backend tests and Agent Eval
+    needs: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Run 61 backend regression tests
+        run: >-
+          bash mvnw --batch-mode --no-transfer-progress clean
+          -Dtest=HealthToolPolicyTest,ToolRegistryRiskGuardTest,WeChatBotServiceBoundaryTest,AdminBoundaryTest,GithubWorkflowContractTest,HealthActionAuditServiceTest,HealthActionCoordinatorTest,PendingHealthActionStoreRedisTest,HealthRecordStoreTest,MySqlHealthRecordRepositoryTest,SchemaContractTest,AdminAccountBootstrapTest,HealthAgentStartupValidatorTest,HealthManagementServiceTest,RagPipelineUserIsolationTest,RagServiceTest,ReminderConfigServiceTest
+          test
+      - name: Run 8 Agent Eval cases
+        run: >-
+          bash mvnw --batch-mode --no-transfer-progress
+          -Dtest=HealthAgentEvalTest
+          test
+
+  frontend:
+    name: Frontend production build
+    needs: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Validate Vue single-file components
+        run: npm run check
+      - name: Build admin application
+        run: npm run build

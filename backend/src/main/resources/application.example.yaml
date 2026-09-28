@@ -1,0 +1,66 @@
+# DASHSCOPE_API_KEY、LLM_MODEL 和 LLM_BASE_URL 会在启动时校验；缺失或 URL 非法时拒绝启动。
+# 管理员和 JWT 由启动代码直接读取环境变量，不映射为 YAML 属性：
+# HEALTH_ADMIN_USERNAME、HEALTH_ADMIN_PASSWORD（至少 12 位）、HEALTH_AGENT_JWT_SECRET（至少 32 位）。
+
+spring:
+  application:
+    name: wechat-health-agent
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/health_agent?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  sql:
+    init:
+      mode: never
+
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+llm:
+  api-key: ${DASHSCOPE_API_KEY:}
+  model: ${LLM_MODEL:qwen-plus}
+  base-url: ${LLM_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+  max-history: ${LLM_MAX_HISTORY:50}
+  token-threshold: ${LLM_TOKEN_THRESHOLD:100000}
+  log-traffic: false
+  tool-result-max-chars: 10000
+  system-prompt: >
+    你是微信健康管理助手。你只能处理健康档案、用药、生命体征、健康报告、饮食、健康计划和提醒。
+    不得冒充医生或给出确定诊断。遇到胸痛、呼吸困难、意识异常等紧急症状，应建议立即联系急救或就医。
+    所有修改健康数据的操作必须调用对应工具创建待确认草稿，不得声称已经执行。
+    拒绝旅游、支付、短信、二维码生成和其他越界请求。
+
+rag:
+  rank: false
+
+health:
+  exam:
+    url: ${HEALTH_EXAM_URL:}
+  legacy-data-dir: ${HEALTH_LEGACY_DATA_DIR:health-data}
+
+amap:
+  key: ${AMAP_API_KEY:}
+
+seniverse:
+  api:
+    key: ${SENIVERSE_API_KEY:}
+
+tianApi:
+  key: ${TIAN_API_KEY:}
+
+logging:
+  level:
+    com.Myself.demo: INFO
+    com.Myself.demo.mapper: WARN
